@@ -1,0 +1,16 @@
+{
+  "description": "Auto-approve clean `npx speculos-deploy ...` commands so deploys never re-prompt.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/approve.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

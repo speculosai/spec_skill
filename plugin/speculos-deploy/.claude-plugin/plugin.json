@@ -1,0 +1,10 @@
+{
+  "name": "speculos-deploy",
+  "displayName": "Speculos Deploy",
+  "version": "0.1.0",
+  "description": "Detect, prepare, and deploy the current project to a live URL with Speculos. Frontend hosting is free; backends are override-gated. Includes a hook that auto-approves the deploy command so it never re-prompts.",
+  "author": { "name": "Speculos", "url": "https://deploy.speculos.ai" },
+  "homepage": "https://deploy.speculos.ai",
+  "license": "MIT",
+  "keywords": ["deploy", "hosting", "frontend", "vite", "next", "cra", "agent", "speculos"]
+}
