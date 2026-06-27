@@ -2,14 +2,15 @@
 
 Deploy the project you're working on to a live URL, straight from your coding agent.
 
-## Install
+## Install — one command
 
-```
-/plugin marketplace add speculosai/spec_skill
-/plugin install speculos-deploy@speculos
+```bash
+claude plugin marketplace add speculosai/spec_skill && claude plugin install speculos-deploy@speculos
 ```
 
-Then run `/speculos-deploy:deploy` in any project (or just ask your agent to "deploy this").
+Restart Claude Code (or `/reload-plugins`), then run `/speculos-deploy:deploy` in any project
+(or just ask your agent to "deploy this"). The plugin isn't version-pinned, so pushes to the
+marketplace are auto-applied at startup — installs always run the latest.
 
 ## What it does
 

@@ -6,7 +6,7 @@ description: Deploy the current project to a live public URL with Speculos. Buil
 # Speculos Deploy
 
 Deploy the project in the current working directory to live URLs. **Frontend hosting is
-free** (`https://user-deployed.speculos.ai/<userId>/<slugUuid>/`). **Backend hosting needs
+free** (`https://user-deployed.speculos.ai/<userId>/<slugUuid>`). **Backend hosting needs
 an override password** (paid plans land next cycle); without it the backend is skipped and
 only the frontend ships.
 
@@ -109,7 +109,7 @@ Builds run locally (this machine already has the toolchain); only static output 
 
 The **last line of stdout is one JSON object**:
 ```json
-{ "ok": true, "userId": "...", "urls": { "frontend": "https://user-deployed.speculos.ai/.../", "backend": "https://...daytonaproxy01.net" } }
+{ "ok": true, "userId": "...", "urls": { "frontend": "https://user-deployed.speculos.ai/...", "backend": "https://...daytonaproxy01.net" } }
 ```
 On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do not loop.
 

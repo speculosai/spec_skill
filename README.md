@@ -4,22 +4,31 @@ Deploy the app you're working on to a **live public URL**, straight from Claude 
 One command, no servers to configure, no account.
 
 ```
-https://user-deployed.speculos.ai/<you>/<your-app>/
+https://user-deployed.speculos.ai/<you>/<your-app>
 ```
 
-## Install (in Claude Code)
+## Install — one command
 
-Run these two slash commands in Claude Code:
+Paste this once into your terminal:
 
+```bash
+claude plugin marketplace add speculosai/spec_skill && claude plugin install speculos-deploy@speculos
 ```
-/plugin marketplace add speculosai/spec_skill
-/plugin install speculos-deploy@speculos
-```
 
-That's it. Now in any project just say **"deploy this"** (or run `/speculos-deploy:deploy`).
+Restart Claude Code (or run `/reload-plugins`). Then in any project just say
+**"deploy this"** (or run `/speculos-deploy:deploy`).
+
+> Prefer the in-app UI? The same thing as two slash commands:
+> `/plugin marketplace add speculosai/spec_skill` then
+> `/plugin install speculos-deploy@speculos`.
 
 > **Prerequisite:** Node.js must be installed (the deploy runs via `npx` — nothing is
 > installed globally, and you don't need to clone anything).
+
+> **Auto-updates:** the plugin isn't pinned to a version, so every push to this repo is
+> picked up by Claude Code's background auto-update at startup — your install always runs
+> the latest. No manual update needed (you *can* force it with
+> `/plugin update speculos-deploy@speculos`).
 
 ## What it does
 
