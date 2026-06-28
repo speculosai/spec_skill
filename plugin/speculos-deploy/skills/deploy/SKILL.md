@@ -76,8 +76,10 @@ the literal Daytona URL; always read the injected variable so re-deploys keep wo
 
 For build frameworks the CLI sets the correct base automatically — including **Next.js**
 (it injects `basePath`/`assetPrefix`, so `_next/*` assets, fonts referenced in CSS, and
-client-side `<Link>` navigation all resolve under the sub-path). A Next app must be
-**static-export-able** (no SSR / API routes / server actions). For plain static sites,
+client-side `<Link>` navigation all resolve under the sub-path; and root-absolute
+`/public` asset references — `<img src="/x">`, `next/image`, `fetch("/data.json")` — are
+rewritten to the sub-path in the build output, so they work after client-side re-renders
+too). A Next app must be **static-export-able** (no SSR / API routes / server actions). For plain static sites,
 prefer **relative** asset paths (`./styles.css`); root-absolute refs in HTML are
 auto-rewritten by the host. Don't ship secrets in the frontend — the bundle is public.
 
