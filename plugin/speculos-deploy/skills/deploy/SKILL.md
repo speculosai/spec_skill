@@ -6,9 +6,9 @@ description: Deploy the current project to a live public URL with Speculos. Buil
 # Speculos Deploy
 
 Deploy the project in the current working directory to live URLs. **Frontend hosting is
-free** (`https://user-deployed.speculos.ai/<userId>/<slugUuid>`). **Backend hosting needs
-an override password** (paid plans land next cycle); without it the backend is skipped and
-only the frontend ships.
+free** (`https://user-deployed.speculos.ai/<userId>/<slugUuid>`). **Backend hosting requires
+a Speculos beta account** — the password is given at signup (https://speculos.ai) and passed
+with `--override`. Without it, only the frontend ships (a static preview).
 
 Do all of the steps below yourself — detect, edit the code to be deploy-ready, run the
 deploy, verify. Don't just tell the user to do it. Don't run `vercel`/`daytona` directly.
@@ -24,10 +24,26 @@ Read the JSON: `detected.frontend` = `{ dir, kind, framework }` where `kind` is 
 `{ dir, runtime, startCmd }` (node or python) or `null`. If detection picks the wrong
 folders, you'll override with `--frontend`/`--backend` in step 4.
 
-Decide the mode:
-- **Backend present AND the user has/ gives the override password** → full-stack deploy.
-- Otherwise → **frontend-only** (skip the backend; tell the user backends need the paid
-  override).
+### If the project has a backend, ASK the user how to deploy (before you build)
+
+Frontends are **free**; **backends require a Speculos beta account** (password given at
+signup — https://speculos.ai). So when `detect` finds a backend, DON'T silently skip it —
+ask the user with your question UI (e.g. AskUserQuestion). Tailor the “what won't work”
+line to THIS app (a counter button, a form, login, saved data…). For example:
+
+> Speculos hosts frontends for free, but backend hosting requires an account in beta.
+> Without it, I can only ship the static page — and the button won't actually count anything.
+>
+> How do you want to deploy this app?
+>
+> 1. **Frontend and backend (I have an account)** — you provide your Speculos password from
+>    signup for the beta (sign up at https://speculos.ai). Backend + frontend both go live.
+>    I'll ask for the password next.
+> 2. **Frontend only (free)** — ships only the static page; no backend. Mostly a visual preview.
+
+- They pick **1** → ask for the password, then deploy full-stack with `--override <password>` (step 4).
+- They pick **2**, or don't have an account → deploy **frontend-only**.
+- No backend in the project → just deploy the frontend; don't ask.
 
 ## 2. Make the frontend deploy-ready (do these edits)
 
@@ -100,8 +116,8 @@ Builds run locally (this machine already has the toolchain); only static output 
   ```bash
   npx -y speculos-deploy@latest deploy
   ```
-- **Frontend + backend (override password):** if you don't already have it, ask the user for
-  their Speculos override password, then:
+- **Frontend + backend (beta account):** the user gives their Speculos beta password (from
+  signup at https://speculos.ai), then:
   ```bash
   npx -y speculos-deploy@latest deploy --override <PASSWORD>
   ```
@@ -126,8 +142,8 @@ On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do no
 
 ## Notes
 
-- Without the override password the backend is skipped automatically (free = frontend-only).
-  If the app genuinely needs an API, tell the user backend hosting is on the paid plan.
+- Without a beta-account password the backend is skipped (free = frontend-only). Point users
+  to https://speculos.ai to get a beta account if their app needs a backend.
 - This plugin auto-approves the `npx … speculos-deploy …` command (via a PreToolUse hook),
   so the deploy runs without permission prompts. Run the command exactly as written above
   (no shell chaining/redirection) so the auto-approve applies.
