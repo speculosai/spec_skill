@@ -72,12 +72,14 @@ Net effect: after deploy, the build/runtime has the real Daytona backend URL bak
 **all** API calls go to the deployed backend. (The URL changes per deploy — never hard-code
 the literal Daytona URL; always read the injected variable so re-deploys keep working.)
 
-### 2b. Assets must resolve under the sub-path
+### 2b. Assets resolve under the sub-path automatically
 
-For build frameworks the CLI sets the correct base automatically. For plain static sites,
-prefer **relative** asset paths (`./styles.css`, `assets/app.js`). Root-absolute refs in
-HTML are auto-rewritten by the host, but relative is safest. Don't ship secrets in the
-frontend — the bundle is public.
+For build frameworks the CLI sets the correct base automatically — including **Next.js**
+(it injects `basePath`/`assetPrefix`, so `_next/*` assets, fonts referenced in CSS, and
+client-side `<Link>` navigation all resolve under the sub-path). A Next app must be
+**static-export-able** (no SSR / API routes / server actions). For plain static sites,
+prefer **relative** asset paths (`./styles.css`); root-absolute refs in HTML are
+auto-rewritten by the host. Don't ship secrets in the frontend — the bundle is public.
 
 ## 3. Make the backend deploy-ready (only for a full-stack deploy)
 
