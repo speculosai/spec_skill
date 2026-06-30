@@ -28,7 +28,7 @@ folders, you'll override with `--frontend`/`--backend` in step 4.
 ### If the project has a backend, ASK the user how to deploy (before you build)
 
 Frontends are **free**; **backends require a Speculos account with backends enabled**
-(sign up / sign in at https://speculos.ai). So when `detect` finds a backend, DON'T silently
+(sign up / sign in at https://deploy.speculos.ai). So when `detect` finds a backend, DON'T silently
 skip it — ask the user with your question UI (e.g. AskUserQuestion). Tailor the “what won't
 work” line to THIS app (a counter button, a form, login, saved data…). For example:
 
@@ -37,12 +37,13 @@ work” line to THIS app (a counter button, a form, login, saved data…). For e
 >
 > How do you want to deploy this app?
 >
-> 1. **Frontend and backend** — sign in to your Speculos account. I'll run
->    `speculos-deploy login`, which prints a link; open it, approve, and both go live.
->    (Backends are enabled per account in beta — sign up at https://speculos.ai.)
+> 1. **Frontend and backend** — link your Speculos account. I'll run
+>    `speculos-deploy login`, which prints a link; open it, approve. If your account has
+>    backends enabled (beta — request at https://deploy.speculos.ai), the backend deploys
+>    too; otherwise I'll ship the frontend.
 > 2. **Frontend only (free)** — ships only the static page; no backend. Mostly a visual preview.
 
-- They pick **1** → run `speculos-deploy login` (step 4, “Sign in”), then deploy full-stack.
+- They pick **1** → run `speculos-deploy login` (step 4, “Link this device”), then deploy.
 - They pick **2**, or aren't signed in → deploy **frontend-only**.
 - No backend in the project → just deploy the frontend; don't ask.
 
@@ -130,13 +131,15 @@ Builds run locally (this machine already has the toolchain); only static output 
   ```bash
   npx -y speculos-deploy@latest deploy
   ```
-- **Sign in (once, to enable backends):**
+- **Link this device (once):**
   ```bash
   npx -y speculos-deploy@latest login
   ```
   This prints a link like `https://deploy.speculos.ai/link?code=XXXX-XXXX`. **Relay that link
   to the user**, ask them to open it, sign in, and click Approve. The command links this
-  machine to their account; afterward backend deploys work with no password.
+  machine to their account so they can manage deployments online. Backend deploys then work
+  with no password **once backends are enabled on their account** (beta — request at
+  https://deploy.speculos.ai).
 - **Frontend + backend (signed in):** just run the normal deploy — the saved sign-in
   authorizes the backend:
   ```bash
@@ -155,7 +158,7 @@ The **last line of stdout is one JSON object**:
 ```
 On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do not loop. If the
 error code is `BACKEND_DISABLED`, the account isn't enabled for backends yet — deploy
-frontend-only and point the user to https://speculos.ai.
+frontend-only and point the user to https://deploy.speculos.ai.
 
 ## 5. Report + verify
 
@@ -168,7 +171,7 @@ frontend-only and point the user to https://speculos.ai.
 ## Notes
 
 - Until the user signs in (and their account has backends enabled) the backend is skipped
-  (free = frontend-only). Run `speculos-deploy login`, or point users to https://speculos.ai.
+  (free = frontend-only). Run `speculos-deploy login`, or point users to https://deploy.speculos.ai.
 - Permission is granted once at skill install, so the deploy command runs without prompting.
 - To remove a deployment: `npx -y speculos-deploy@latest teardown --slug <slug>` (or use the
   dashboard at https://deploy.speculos.ai/dashboard).
