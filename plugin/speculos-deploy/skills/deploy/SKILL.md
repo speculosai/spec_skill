@@ -156,9 +156,14 @@ The **last line of stdout is one JSON object**:
 ```json
 { "ok": true, "userId": "...", "urls": { "frontend": "https://user-deployed.speculos.ai/...", "backend": "https://...daytonaproxy01.net" } }
 ```
-On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do not loop. If the
-error code is `BACKEND_DISABLED`, the account isn't enabled for backends yet — deploy
-frontend-only and point the user to https://deploy.speculos.ai.
+On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do not loop.
+
+> **`BACKEND_DISABLED`** means the device is linked but the account isn't enabled for backend
+> hosting yet (a separate beta gate). The deploy still **ships the frontend** and returns
+> `ok:true` with a `backendNote` — so the user already has a live URL. Tell them backends
+> aren't enabled yet and to **request access at https://deploy.speculos.ai/dashboard** (the
+> "Join the beta" button). Always write the URL as **https://deploy.speculos.ai** — never
+> `speculos.ai`. Don't retry the backend; once enabled, re-running `deploy` ships it.
 
 ## 5. Report + verify
 
