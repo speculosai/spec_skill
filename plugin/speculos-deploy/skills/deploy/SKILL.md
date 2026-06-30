@@ -108,22 +108,19 @@ Only if deploying a backend (signed in, backends enabled). In the backend code:
   Speculos runs your app on `$PORT` for you — Node `process.env.PORT`, and for
   Python it sets the framework's host/port (uvicorn/gunicorn/Flask/Django are
   launched bound to `0.0.0.0:$PORT` automatically). Don't hard-code a port.
-- **CORS is required** — the frontend and backend are different origins, so the
-  browser blocks calls unless the backend allows them. Send, on every response
-  **and** on `OPTIONS` (answer it `204`): `Access-Control-Allow-Origin: *` (or your
-  frontend origin), `Access-Control-Allow-Methods: GET,POST,PUT,PATCH,DELETE,OPTIONS`,
-  and **`Access-Control-Allow-Headers: Content-Type, Authorization`** (include
-  `Authorization` — Bearer tokens are the right cross-site auth here; avoid
-  cross-site cookies). Use a library: `cors()` (Express), `flask-cors`,
-  `CORSMiddleware` (FastAPI), `django-cors-headers`.
+- **CORS is handled for you** — Speculos injects permissive CORS at the edge, so the
+  cross-origin frontend can call your backend **even if you set none**. You don't need
+  to add CORS code (if you do, it's normalized at the edge). Use **Bearer-token** auth
+  rather than cross-site cookies.
 - Optional but nice: a `GET /health` returning 200 for a faster readiness check.
 
-> **Runtime & lifecycle (tell the user):** backends run on **Node 22 / Python 3.12**
-> (pin another with `.nvmrc` / `.python-version`). The app is supervised (it
-> auto-restarts on crash and is revived after a pause). **Storage is not durable** —
-> a local SQLite file survives restarts but is **beta-ephemeral**; for data you
-> can't lose, use an external database. TypeScript is built automatically
-> (`npm run build`/`tsc`); set a `start` script if it's non-standard.
+> **Runtime, resources & lifecycle (tell the user):** backends run on **Node 22 /
+> Python 3.12** (pin another with `.nvmrc` / `.python-version`), capped at **~0.5 vCPU
+> and 512 MB RAM** per app. The app is supervised (auto-restarts on crash, revived
+> after a pause). **Storage is not durable** — a local SQLite file survives restarts
+> but is **beta-ephemeral**; for data you can't lose, use an external database.
+> TypeScript is built automatically (`npm run build`/`tsc`); set a `start` script if
+> it's non-standard.
 
 ## 4. Deploy
 
