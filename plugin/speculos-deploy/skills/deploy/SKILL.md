@@ -105,9 +105,25 @@ auto-rewritten by the host. Don't ship secrets in the frontend — the bundle is
 Only if deploying a backend (signed in, backends enabled). In the backend code:
 
 - Listen on `process.env.PORT` and bind `0.0.0.0` (NOT `127.0.0.1`/`localhost`).
-- Send permissive CORS so the cross-origin frontend can call it
-  (`Access-Control-Allow-Origin: *`, allow `Content-Type`, answer `OPTIONS` 204).
+  Speculos runs your app on `$PORT` for you — Node `process.env.PORT`, and for
+  Python it sets the framework's host/port (uvicorn/gunicorn/Flask/Django are
+  launched bound to `0.0.0.0:$PORT` automatically). Don't hard-code a port.
+- **CORS is required** — the frontend and backend are different origins, so the
+  browser blocks calls unless the backend allows them. Send, on every response
+  **and** on `OPTIONS` (answer it `204`): `Access-Control-Allow-Origin: *` (or your
+  frontend origin), `Access-Control-Allow-Methods: GET,POST,PUT,PATCH,DELETE,OPTIONS`,
+  and **`Access-Control-Allow-Headers: Content-Type, Authorization`** (include
+  `Authorization` — Bearer tokens are the right cross-site auth here; avoid
+  cross-site cookies). Use a library: `cors()` (Express), `flask-cors`,
+  `CORSMiddleware` (FastAPI), `django-cors-headers`.
 - Optional but nice: a `GET /health` returning 200 for a faster readiness check.
+
+> **Runtime & lifecycle (tell the user):** backends run on **Node 22 / Python 3.12**
+> (pin another with `.nvmrc` / `.python-version`). The app is supervised (it
+> auto-restarts on crash and is revived after a pause). **Storage is not durable** —
+> a local SQLite file survives restarts but is **beta-ephemeral**; for data you
+> can't lose, use an external database. TypeScript is built automatically
+> (`npm run build`/`tsc`); set a `start` script if it's non-standard.
 
 ## 4. Deploy
 
