@@ -168,7 +168,16 @@ On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do no
 ## 5. Report + verify
 
 - Give the user `urls.frontend` (and `urls.backend` if deployed). They can manage and tear
-  down their deployments anytime at https://deploy.speculos.ai/dashboard.
+  down their deployments anytime at https://deploy.speculos.ai/dashboard — including
+  renaming the URL: "Edit URL" changes an individual app's slug segment, and the account's
+  "Your URL name" changes the first segment (default a random id) for every app on that
+  device. Beta accounts can also connect their own domain: CNAME it to
+  `cname-user.speculos.ai` first (DNS must already resolve there before the dashboard will
+  accept it — that's the ownership proof). After any rename, the URL from an older deploy output is stale
+  (re-deploys automatically target the new URL) — **warn the user that a complex app
+  (one with client-side routing, hashed asset URLs baked at build time, etc.) may need a
+  fresh `deploy` to fully pick up a slug/username rename**, since the rename rewrites the
+  already-deployed files rather than rebuilding them.
 - Quick check: `curl -sS -o /dev/null -w '%{http_code}\n' <frontendUrl>` → expect `200`.
 - Keep `~/.speculos/identity.json` and the project's gitignored `.speculos.json` — they own
   your URLs; re-deploys reuse the same URL. Don't commit or delete them.
