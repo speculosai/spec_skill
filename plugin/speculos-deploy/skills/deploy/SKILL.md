@@ -1,6 +1,6 @@
 ---
 name: speculos-deploy
-description: Deploy the current project to a live public URL with Speculos. Builds the frontend locally, hosts it, wires its API calls to the deployed backend, and reports the URLs. Use when the user says "deploy", "ship it", "publish", "put it live", "get me a URL", "deploy to speculos", or "deploy the frontend/backend". Handles plain static sites and Vite / Next / CRA / Angular / Svelte frontends; deploys Node/Python backends when the user has signed in (`speculos-deploy login`) to a Speculos account with backends enabled (free tier is frontend-only).
+description: Deploy the current project to a live public URL with Speculos. Builds the frontend locally, hosts it, wires its API calls to the deployed backend, and reports the URLs. Use when the user says "deploy", "ship it", "publish", "put it live", "get me a URL", "deploy to speculos", or "deploy the frontend/backend". Handles plain static sites and Vite / Next / CRA / Angular / Svelte frontends; deploys Node/Python/Bun backends when the user has signed in (`speculos-deploy login`) to a Speculos account with backends enabled (free tier is frontend-only).
 ---
 
 # Speculos Deploy
@@ -22,8 +22,9 @@ npx -y speculos-deploy@latest detect --json
 
 Read the JSON: `detected.frontend` = `{ dir, kind, framework }` where `kind` is `static`
 (serve as-is) or `build` (Vite/Next/CRA/Angular/Svelte); `detected.backend` =
-`{ dir, runtime, startCmd }` (node or python) or `null`. If detection picks the wrong
-folders, you'll override with `--frontend`/`--backend` in step 4.
+`{ dir, runtime, startCmd }` (node, python, or bun — a `bun.lockb`/`bunfig.toml` selects
+Bun, which runs TS/JS natively) or `null`. If detection picks the wrong folders, override
+with `--frontend`/`--backend` in step 4 (or force a build dir to serve as-is with `--static`).
 
 ### If the project has a backend, ASK the user how to deploy (before you build)
 
@@ -116,12 +117,14 @@ Only if deploying a backend (signed in, backends enabled). In the backend code:
 - Optional but nice: a `GET /health` returning 200 for a faster readiness check.
 
 > **Runtime, resources & lifecycle (tell the user):** backends run on **Node 22 /
-> Python 3.12** (pin another with `.nvmrc` / `.python-version`), capped at **~0.5 vCPU
-> and 512 MB RAM** per app. The app is supervised (auto-restarts on crash, revived
-> after a pause). **Storage is not durable** — a local SQLite file survives restarts
-> but is **beta-ephemeral**; for data you can't lose, use an external database.
-> TypeScript is built automatically (`npm run build`/`tsc`); set a `start` script if
-> it's non-standard.
+> Python 3.12 / Bun** (auto-detected; pin Node/Python with `.nvmrc` / `.python-version`),
+> capped at **~0.5 vCPU and 512 MB RAM** per app. The app is supervised (auto-restarts on
+> crash, revived after a pause). **Data persists across redeploys** — a local SQLite file
+> (and files under `data/` / `uploads/` / `storage/`) is preserved when you re-`deploy` the
+> same app, because the backend reuses its sandbox (which also keeps the backend URL stable).
+> It's a single sandbox with no backups, so use an external database for anything critical.
+> TypeScript is built automatically (`tsc`/`npm run build`, or run natively under Bun); set a
+> `start` script if it's non-standard.
 
 ## 4. Deploy
 
@@ -135,11 +138,15 @@ Builds run locally (this machine already has the toolchain); only static output 
   ```bash
   npx -y speculos-deploy@latest login
   ```
-  This prints a link like `https://deploy.speculos.ai/link?code=XXXX-XXXX`. **Relay that link
-  to the user**, ask them to open it, sign in, and click Approve. The command links this
-  machine to their account so they can manage deployments online. Backend deploys then work
-  with no password **once backends are enabled on their account** (beta — request at
-  https://deploy.speculos.ai).
+  `login` **blocks while it waits for approval** (up to 10 min), and prints the approval link
+  both to stderr and as its FIRST stdout JSON line (`{"action":"login","url":"…","code":"…"}`).
+  **Run it in the background** (e.g. Claude Code Bash with `run_in_background: true`, or a long
+  `timeout`) so it isn't killed by a default command timeout before the user approves. Read the
+  link from that first line and **relay it to the user** — ask them to open it, sign in, and
+  click Approve. It links this machine to their account (already linked? it no-ops — pass
+  `--relink` to switch accounts). Backend deploys then work with no password **once backends
+  are enabled** (beta — request at https://deploy.speculos.ai). Unlink with
+  `speculos-deploy logout`.
 - **Frontend + backend (signed in):** just run the normal deploy — the saved sign-in
   authorizes the backend:
   ```bash
@@ -159,25 +166,30 @@ The **last line of stdout is one JSON object**:
 On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do not loop.
 
 > **`BACKEND_DISABLED`** means the device is linked but the account isn't enabled for backend
-> hosting yet (a separate beta gate). The deploy still **ships the frontend** and returns
-> `ok:true` with a `backendNote` — so the user already has a live URL. Tell them backends
-> aren't enabled yet and to **request access at https://deploy.speculos.ai/dashboard** (the
-> "Join the beta" button). Always write the URL as **https://deploy.speculos.ai** — never
-> `speculos.ai`. Don't retry the backend; once enabled, re-running `deploy` ships it.
+> hosting yet (a separate beta gate). **`TOO_MANY`** means the account is at its backend limit.
+> In both cases the deploy still **ships the frontend** and returns `ok:true` with a
+> `backendNote` — so the user already has a live URL. Tell them to **request access / free up a
+> slot at https://deploy.speculos.ai/dashboard** (the "Join the beta" button, or tear down a
+> backend). Always write the URL as **https://deploy.speculos.ai** — never `speculos.ai`. Don't
+> retry the backend; once enabled/under the limit, re-running `deploy` ships it. Redeploying an
+> app that already has a backend never counts against the limit (it reuses its sandbox).
 
 ## 5. Report + verify
 
 - Give the user `urls.frontend` (and `urls.backend` if deployed). They can manage and tear
-  down their deployments anytime at https://deploy.speculos.ai/dashboard — including
-  renaming the URL: "Edit URL" changes an individual app's slug segment, and the account's
-  "Your URL name" changes the first segment (default a random id) for every app on that
-  device. Beta accounts can also connect their own domain: CNAME it to
-  `cname-user.speculos.ai` first (DNS must already resolve there before the dashboard will
-  accept it — that's the ownership proof). After any rename, the URL from an older deploy output is stale
-  (re-deploys automatically target the new URL) — **warn the user that a complex app
-  (one with client-side routing, hashed asset URLs baked at build time, etc.) may need a
-  fresh `deploy` to fully pick up a slug/username rename**, since the rename rewrites the
-  already-deployed files rather than rebuilding them.
+  down their deployments anytime at https://deploy.speculos.ai/dashboard. The public URL is
+  `user-deployed.speculos.ai/<username>/<app-slug>/`, and BOTH segments are renameable there:
+  "Edit URL" changes an app's slug (the second segment), and the account's "Your URL name"
+  changes the first segment (default a random id) for every app on that device. Beta accounts
+  can also connect their own domain — a **two-step** flow: (1) add the domain, which shows a
+  **CNAME** target (`cname-user.speculos.ai`) plus a **TXT** ownership record to publish, then
+  (2) click Verify once both are set (we confirm the domain points here AND the TXT proves the
+  account controls it before activating). A connected domain serves the SAME app and honors the
+  username/app-slug you chose. After any rename, the URL from an older deploy output is stale
+  (re-deploys automatically target the new URL) — **warn the user that a complex app (one with
+  client-side routing, hashed asset URLs baked at build time, etc.) may need a fresh `deploy`
+  to fully pick up a slug/username rename**, since the rename rewrites the already-deployed
+  files rather than rebuilding them.
 - Quick check: `curl -sS -o /dev/null -w '%{http_code}\n' <frontendUrl>` → expect `200`.
 - Keep `~/.speculos/identity.json` and the project's gitignored `.speculos.json` — they own
   your URLs; re-deploys reuse the same URL. Don't commit or delete them.

@@ -10,7 +10,7 @@
     {
       "name": "speculos-deploy",
       "source": "./plugin/speculos-deploy",
-      "description": "Detect, prepare, and deploy the current project to a live URL with Speculos — frontend hosting (free) plus override-gated backends. Auto-approves the deploy command so it never re-prompts.",
+      "description": "Detect, prepare, and deploy the current project to a live URL with Speculos — free frontend hosting plus account-linked backends (sign in with `speculos-deploy login`). Auto-approves the deploy command so it never re-prompts.",
       "author": { "name": "Speculos" },
       "homepage": "https://deploy.speculos.ai",
       "category": "deployment",
