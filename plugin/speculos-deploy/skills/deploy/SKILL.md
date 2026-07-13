@@ -48,6 +48,11 @@ work” line to THIS app (a counter button, a form, login, saved data…). For e
 - They pick **2**, or aren't signed in → deploy **frontend-only**.
 - No backend in the project → just deploy the frontend; don't ask.
 
+> **Connector data dashboards don't need a backend.** If the app just READS from a linked
+> data source (a "pull sales prospects" dashboard, a metrics view), build it **frontend-only**
+> and call the broker directly from the browser (see §3.5 → "a read-only dashboard needs NO
+> backend"). A backend is only for connector **writes** or other server secrets.
+
 ## 2. Make the frontend deploy-ready (do these edits)
 
 The site is served under a **sub-path** and talks to a **different-origin** backend, so fix
@@ -183,78 +188,73 @@ imports `airtable` with a PAT: replace the SDK calls with `connector("airtable",
 this for services the user actually has a connector for (check `connectors list`);
 leave other integrations untouched.
 
-### The runtime pipe: ONE code path, local and deployed
+### The runtime pipe — a read-only dashboard needs NO backend
 
-Deployed backends automatically receive `SPECULOS_CONNECTORS_URL` and
-`SPECULOS_CONNECTORS_TOKEN` (an app-scoped broker token; no `--env` needed). For local
-runs, fall back to the developer's CLI token. Write this helper into the backend once and
-route every connector call through it — the SAME code then works locally right now and
-deployed later, with zero changes at deploy time:
+**Default to frontend-only for read dashboards.** Speculos bakes an app-scoped, **read-only**
+broker token into the deployed frontend, so the browser calls the shared broker **directly** —
+no backend to deploy or maintain. The connector credential (OAuth grant / DB password) never
+leaves the platform, and nothing sensitive lives in your code. Write this helper into the
+frontend and route every connector **read** through it:
 
 ```js
-// speculos.js — connector broker client (backend only; never import in the frontend)
-const fs = require("fs"), os = require("os"), path = require("path");
-const BROKER = process.env.SPECULOS_CONNECTORS_URL || "https://deploy-orch-38hd4.speculos.ai/api/connectors";
-function token() {
-  if (process.env.SPECULOS_CONNECTORS_TOKEN) return process.env.SPECULOS_CONNECTORS_TOKEN; // deployed
-  try { // local dev: reuse the CLI login on this machine
-    return JSON.parse(fs.readFileSync(path.join(os.homedir(), ".speculos", "identity.json"), "utf8")).accountToken;
-  } catch { throw new Error("no Speculos credentials — run `npx -y speculos-deploy@latest login`"); }
-}
-async function connector(alias, tool, args) {
+// speculos.js — read-only connector client (safe in the browser; no backend needed)
+const G = typeof window !== "undefined" ? window : {};
+const E = (typeof import.meta !== "undefined" && import.meta.env) || (typeof process !== "undefined" && process.env) || {};
+const BROKER = E.VITE_SPECULOS_CONNECTORS_URL || E.NEXT_PUBLIC_SPECULOS_CONNECTORS_URL || E.REACT_APP_SPECULOS_CONNECTORS_URL || G.SPECULOS_CONNECTORS_URL;
+const TOKEN  = E.VITE_SPECULOS_CONNECTORS_TOKEN || E.NEXT_PUBLIC_SPECULOS_CONNECTORS_TOKEN || E.REACT_APP_SPECULOS_CONNECTORS_TOKEN || G.SPECULOS_CONNECTORS_TOKEN;
+export async function connector(alias, tool, args) {
+  const gate = document.cookie.split("; ").find((c) => c.startsWith("spec_gate="))?.slice(10);
   const r = await fetch(`${BROKER}/execute`, {
     method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token()}` },
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${TOKEN}`,
+      ...(gate ? { "x-speculos-gate": gate } : {}), // forwards the viewer's access for private/org apps
+    },
     body: JSON.stringify({ connector: alias, tool, arguments: args || {} }),
   });
   const out = await r.json().catch(() => ({}));
   if (!r.ok || !out.ok) throw new Error(out.error || `connector ${r.status}`);
   return out.data;
 }
-module.exports = { connector };
 ```
 
-```python
-# speculos.py — same pipe for Python backends
-import json, os, urllib.request
-BROKER = os.environ.get("SPECULOS_CONNECTORS_URL", "https://deploy-orch-38hd4.speculos.ai/api/connectors")
-def _token():
-    if os.environ.get("SPECULOS_CONNECTORS_TOKEN"): return os.environ["SPECULOS_CONNECTORS_TOKEN"]
-    try:
-        with open(os.path.expanduser("~/.speculos/identity.json")) as f: return json.load(f)["accountToken"]
-    except Exception: raise RuntimeError("no Speculos credentials — run `npx -y speculos-deploy@latest login`")
-def connector(alias, tool, args=None):
-    req = urllib.request.Request(f"{BROKER}/execute", method="POST",
-        data=json.dumps({"connector": alias, "tool": tool, "arguments": args or {}}).encode(),
-        headers={"content-type": "application/json", "authorization": f"Bearer {_token()}"})
-    with urllib.request.urlopen(req) as r: out = json.load(r)
-    if not out.get("ok"): raise RuntimeError(out.get("error") or "connector call failed")
-    return out["data"]
-```
+Rules (and state to the user):
+- **Read-only only.** The broker rejects any non-read tool on this path (`WRITE_BLOCKED`).
+  Use `LIST_`/`GET_`/`SEARCH_`/`QUERY` tools; `POSTGRES_QUERY` runs in a read-only transaction.
+- **Access control is automatic and visibility-driven.** A **private** app requires the viewer
+  to be the owner; an **org** app requires org membership — the browser forwards its `spec_gate`
+  cookie (the helper does this) and the broker verifies it. A **public** app needs no gate. You
+  can promote **private → org → public** from the dashboard, live — **no redeploy**.
+- **Sensitive data → keep it private** (the default for connector-enabled accounts). Only a
+  **public** app's data is readable by anyone with the link.
+- Handle `ok:false` gracefully (provider/tool errors are data). Responses cap at 1000 rows / 10s.
 
-Rules to follow (and state to the user):
-- **Only backend code calls the broker.** The token is a secret; the frontend must go
-  through the backend (frontend → backend → broker), never call the broker directly.
-- Handle `ok:false` gracefully in the app — provider/tool errors are data, not crashes.
-- Grants are checked per call and tokens rotate on redeploy — an admin revoking access
-  applies live to a running app; nothing needs redeploying.
-- Broker responses (`POSTGRES_QUERY`, etc.) cap at 1000 rows / 10s per statement, and
-  Postgres sources are strictly read-only.
+### When you DO need a backend
 
-### App visibility (tell the user)
-
-An app deployed by an **org member starts `private`** — only its owner can open it (the
-page redirects through deploy.speculos.ai to check). The owner or an org admin can switch
-it to **org-wide** (any org member) or **public** from the dashboard, live. For a private/org
-app, the frontend must forward its gate cookie to backend calls — add this to the fetch
-wrapper from step 2a:
+Only if the app must **write** to a connector (create/update/send/delete) or holds other
+server secrets. Then deploy a backend; it automatically receives `SPECULOS_CONNECTORS_URL` +
+`SPECULOS_CONNECTORS_TOKEN` (a full-access, server-side token — never put it in the frontend)
+and calls the broker from server code:
 
 ```js
-const gate = document.cookie.split("; ").find(c => c.startsWith("spec_gate="))?.slice(10);
-fetch(`${API}/api/things`, { headers: gate ? { "x-speculos-gate": gate } : {} });
+// backend only — full access incl. writes. NEVER import in the frontend.
+const BROKER = process.env.SPECULOS_CONNECTORS_URL;
+const TOKEN  = process.env.SPECULOS_CONNECTORS_TOKEN; // injected on deploy; absent locally
+async function connector(alias, tool, args) {
+  const r = await fetch(`${BROKER}/execute`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify({ connector: alias, tool, arguments: args || {} }),
+  });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok || !out.ok) throw new Error(out.error || `connector ${r.status}`);
+  return out.data;
+}
 ```
 
-(Public apps can skip this — the header is simply ignored.)
+(Locally the injected vars are absent — guard with a clear error or mock. Grants and access
+are re-checked per call, so revoking access applies live to a running app.)
 
 ## 4. Deploy
 
