@@ -1,7 +1,7 @@
 {
   "name": "speculos-deploy",
   "displayName": "Speculos Deploy",
-  "description": "Detect, prepare, and deploy the current project to a live URL with Speculos. Frontend hosting is free; backends are override-gated. Includes a hook that auto-approves the deploy command so it never re-prompts.",
+  "description": "Detect, prepare, and deploy the current project to a live URL with Speculos — and build against the data sources (BigQuery, Postgres, Snowflake, Salesforce, …) linked to your account or org. Frontend hosting is free; backend hosting needs a Speculos account with backends enabled (sign in with `speculos-deploy login`). Includes a hook that auto-approves the deploy + connectors commands so they never re-prompt.",
   "author": {
     "name": "Speculos",
     "url": "https://deploy.speculos.ai"
@@ -16,6 +16,10 @@
     "next",
     "cra",
     "agent",
-    "speculos"
+    "speculos",
+    "connectors",
+    "data",
+    "bigquery",
+    "postgres"
   ]
 }

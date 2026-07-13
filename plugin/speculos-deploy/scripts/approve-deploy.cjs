@@ -12,7 +12,7 @@ process.stdin.on("end", () => {
   const cmd = String((inp.tool_input || {}).command || "").trim();
 
   // npx [-y] speculos-deploy[@ver] [subcommand args-without-metacharacters]
-  const SAFE = /^npx\s+(-y\s+)?speculos-deploy(@[\w.\-]+)?(\s+(deploy|detect|status|teardown|install-skill)\b[^\n;&|`><$()]*)?$/;
+  const SAFE = /^npx\s+(-y\s+)?speculos-deploy(@[\w.\-]+)?(\s+(deploy|detect|status|teardown|login|logout|install-skill|connectors)\b[^\n;&|`><$()]*)?$/;
   if (!SAFE.test(cmd)) return;
 
   process.stdout.write(JSON.stringify({

@@ -10,11 +10,22 @@
     {
       "name": "speculos-deploy",
       "source": "./plugin/speculos-deploy",
-      "description": "Detect, prepare, and deploy the current project to a live URL with Speculos — free frontend hosting plus account-linked backends (sign in with `speculos-deploy login`). Auto-approves the deploy command so it never re-prompts.",
-      "author": { "name": "Speculos" },
+      "description": "Detect, prepare, and deploy the current project to a live URL with Speculos — free frontend hosting, account-linked backends, and org data-source connectors (BigQuery, Postgres, Snowflake, …) your agent can build against. Auto-approves the deploy command so it never re-prompts.",
+      "author": {
+        "name": "Speculos"
+      },
       "homepage": "https://deploy.speculos.ai",
       "category": "deployment",
-      "keywords": ["deploy", "hosting", "frontend", "vite", "next", "agent"]
+      "keywords": [
+        "deploy",
+        "hosting",
+        "frontend",
+        "vite",
+        "next",
+        "agent",
+        "connectors",
+        "data"
+      ]
     }
   ]
 }

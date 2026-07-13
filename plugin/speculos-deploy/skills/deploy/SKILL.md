@@ -1,6 +1,6 @@
 ---
 name: speculos-deploy
-description: Deploy the current project to a live public URL with Speculos. Builds the frontend locally, hosts it, wires its API calls to the deployed backend, and reports the URLs. Use when the user says "deploy", "ship it", "publish", "put it live", "get me a URL", "deploy to speculos", or "deploy the frontend/backend". Handles plain static sites and Vite / Next / CRA / Angular / Svelte frontends; deploys Node/Python/Bun backends when the user has signed in (`speculos-deploy login`) to a Speculos account with backends enabled (free tier is frontend-only).
+description: Deploy the current project to a live public URL with Speculos, and build against the user's linked data sources (connectors). Builds the frontend locally, hosts it, wires its API calls to the deployed backend, and reports the URLs. Use when the user says "deploy", "ship it", "publish", "put it live", "get me a URL", "deploy to speculos", "deploy the frontend/backend", or wants an app built on their connected data (BigQuery, Postgres, Snowflake, Salesforce, ...). Handles plain static sites and Vite / Next / CRA / Angular / Svelte frontends; deploys Node/Python/Bun backends when the user has signed in (`speculos-deploy login`) to a Speculos account with backends enabled (free tier is frontend-only).
 ---
 
 # Speculos Deploy
@@ -126,6 +126,136 @@ Only if deploying a backend (signed in, backends enabled). In the backend code:
 > TypeScript is built automatically (`tsc`/`npm run build`, or run natively under Bun); set a
 > `start` script if it's non-standard.
 
+## 3.5 Connectors: build against the user's real data
+
+Speculos accounts (and orgs) can link **data sources** — BigQuery, Snowflake, Salesforce,
+Postgres, … — in the dashboard. When the app needs real data, discover what's linked and
+build against it instead of inventing schemas.
+
+### Check what's linked (do this BEFORE writing data-layer code)
+
+```bash
+npx -y speculos-deploy@latest connectors list --json
+```
+
+The last stdout line is `{ ok, brokerUrl, connectors: [{ alias, name, kind, accountIdentifier, tools: [...] }] }`.
+
+- `ok:false` + `code:"NO_TOKEN"` → the device isn't logged in; run `login` (step 4) first.
+- `ok:true` with empty `connectors` → nothing linked (or nothing granted to this user).
+  If the app clearly wants external data, tell the user to link a source (or ask their org
+  admin for access) at **https://deploy.speculos.ai/dashboard**, then **re-run the list** —
+  access is resolved server-side on every call, so a source linked or granted seconds ago
+  shows up immediately with no re-login and no session restart. Never block a deploy on this.
+- A `403 NO_ACCESS` on execute means an org admin hasn't granted that source to this user —
+  same recovery: ask, then simply retry.
+
+### Live discovery (read-only!)
+
+Learn the real schema and a few sample rows before coding. Execute read/list/get/describe
+tools only — never create/update/delete/send tools during discovery. **Always pass
+arguments via `--args-file`** (inline JSON containing `$`, `(`, `)` can trip the
+auto-approval guard):
+
+```bash
+cat > /tmp/args.json << 'EOF'
+{ "sql": "SELECT * FROM analytics.orders ORDER BY created_at DESC LIMIT 20" }
+EOF
+npx -y speculos-deploy@latest connectors exec --connector postgres \
+  --tool POSTGRES_QUERY --args-file /tmp/args.json
+```
+
+Pick tools from the `tools` array in `connectors list` (e.g. `POSTGRES_SCHEMA`,
+`GOOGLEBIGQUERY_LIST_DATASETS`, `SALESFORCE_QUERY`). Fetch SMALL samples (`LIMIT 20`,
+narrow ranges) — enough to see real column names and value shapes, never whole datasets.
+Every `exec` call needs a `--connector <alias>` (the broker requires it — a call
+without one is rejected, never silently run against the wrong source).
+
+### Prefer the connector over a direct API key (migrate existing apps)
+
+If the project already calls a service **directly** — an Airtable/Stripe/BigQuery
+SDK, a hard-coded API key, a `pg`/`psycopg` connection string in the code — and the
+user has a linked connector for that same service, **rewrite those calls to go
+through the broker** and drop the embedded credential. The connector is safer (the
+secret stays on the platform, rotates, and is access-controlled) and it's what keeps
+working once deployed. For example, an app the user named "airtable-dashboard" that
+imports `airtable` with a PAT: replace the SDK calls with `connector("airtable",
+"AIRTABLE_LIST_RECORDS", {...})` via the helper below, and delete the PAT. Only do
+this for services the user actually has a connector for (check `connectors list`);
+leave other integrations untouched.
+
+### The runtime pipe: ONE code path, local and deployed
+
+Deployed backends automatically receive `SPECULOS_CONNECTORS_URL` and
+`SPECULOS_CONNECTORS_TOKEN` (an app-scoped broker token; no `--env` needed). For local
+runs, fall back to the developer's CLI token. Write this helper into the backend once and
+route every connector call through it — the SAME code then works locally right now and
+deployed later, with zero changes at deploy time:
+
+```js
+// speculos.js — connector broker client (backend only; never import in the frontend)
+const fs = require("fs"), os = require("os"), path = require("path");
+const BROKER = process.env.SPECULOS_CONNECTORS_URL || "https://deploy-orch-38hd4.speculos.ai/api/connectors";
+function token() {
+  if (process.env.SPECULOS_CONNECTORS_TOKEN) return process.env.SPECULOS_CONNECTORS_TOKEN; // deployed
+  try { // local dev: reuse the CLI login on this machine
+    return JSON.parse(fs.readFileSync(path.join(os.homedir(), ".speculos", "identity.json"), "utf8")).accountToken;
+  } catch { throw new Error("no Speculos credentials — run `npx -y speculos-deploy@latest login`"); }
+}
+async function connector(alias, tool, args) {
+  const r = await fetch(`${BROKER}/execute`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token()}` },
+    body: JSON.stringify({ connector: alias, tool, arguments: args || {} }),
+  });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok || !out.ok) throw new Error(out.error || `connector ${r.status}`);
+  return out.data;
+}
+module.exports = { connector };
+```
+
+```python
+# speculos.py — same pipe for Python backends
+import json, os, urllib.request
+BROKER = os.environ.get("SPECULOS_CONNECTORS_URL", "https://deploy-orch-38hd4.speculos.ai/api/connectors")
+def _token():
+    if os.environ.get("SPECULOS_CONNECTORS_TOKEN"): return os.environ["SPECULOS_CONNECTORS_TOKEN"]
+    try:
+        with open(os.path.expanduser("~/.speculos/identity.json")) as f: return json.load(f)["accountToken"]
+    except Exception: raise RuntimeError("no Speculos credentials — run `npx -y speculos-deploy@latest login`")
+def connector(alias, tool, args=None):
+    req = urllib.request.Request(f"{BROKER}/execute", method="POST",
+        data=json.dumps({"connector": alias, "tool": tool, "arguments": args or {}}).encode(),
+        headers={"content-type": "application/json", "authorization": f"Bearer {_token()}"})
+    with urllib.request.urlopen(req) as r: out = json.load(r)
+    if not out.get("ok"): raise RuntimeError(out.get("error") or "connector call failed")
+    return out["data"]
+```
+
+Rules to follow (and state to the user):
+- **Only backend code calls the broker.** The token is a secret; the frontend must go
+  through the backend (frontend → backend → broker), never call the broker directly.
+- Handle `ok:false` gracefully in the app — provider/tool errors are data, not crashes.
+- Grants are checked per call and tokens rotate on redeploy — an admin revoking access
+  applies live to a running app; nothing needs redeploying.
+- Broker responses (`POSTGRES_QUERY`, etc.) cap at 1000 rows / 10s per statement, and
+  Postgres sources are strictly read-only.
+
+### App visibility (tell the user)
+
+An app deployed by an **org member starts `private`** — only its owner can open it (the
+page redirects through deploy.speculos.ai to check). The owner or an org admin can switch
+it to **org-wide** (any org member) or **public** from the dashboard, live. For a private/org
+app, the frontend must forward its gate cookie to backend calls — add this to the fetch
+wrapper from step 2a:
+
+```js
+const gate = document.cookie.split("; ").find(c => c.startsWith("spec_gate="))?.slice(10);
+fetch(`${API}/api/things`, { headers: gate ? { "x-speculos-gate": gate } : {} });
+```
+
+(Public apps can skip this — the header is simply ignored.)
+
 ## 4. Deploy
 
 Builds run locally (this machine already has the toolchain); only static output is uploaded.
@@ -201,3 +331,15 @@ On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do no
 - Permission is granted once at skill install, so the deploy command runs without prompting.
 - To remove a deployment: `npx -y speculos-deploy@latest teardown --slug <slug>` (or use the
   dashboard at https://deploy.speculos.ai/dashboard).
+- **Already have this skill from before connectors existed?** Re-run
+  `npx -y speculos-deploy@latest install-skill` to refresh it (safe to run repeatedly — it
+  overwrites the skill file and re-grants the command). The CLI itself is always current
+  because every command runs `npx -y speculos-deploy@latest`.
+- **Sign in without the browser flow:** a user who already has an account (or whose platform
+  issues them a token) can paste it: `npx -y speculos-deploy@latest login --token spec_tok_…`.
+  Add `--relink` to move a device that was linked to the wrong account (e.g. a personal one
+  instead of the org) onto the token's account. Backends and connectors then resolve under
+  that account/org.
+- **Redeploys persist data.** Re-running `deploy` on the same app reuses its sandbox, so a
+  local SQLite file and anything under `data/`/`uploads/`/`storage/` survive — the connector
+  broker credentials are re-injected each deploy and don't affect on-disk data.
