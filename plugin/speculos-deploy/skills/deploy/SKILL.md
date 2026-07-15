@@ -301,7 +301,7 @@ On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do no
 > the frontend** and returns `ok:true` with a `backendNote` — so the user already has a live
 > URL. To ship the backend: for `BACKEND_DISABLED`, sign in; for `TOO_MANY`, take an app
 > offline at https://deploy.speculos.ai/dashboard, redeploy an existing backend app, or talk
-> to our team at https://speculos.ai/demo about more capacity. Always write the URL as
+> to our team at https://calendar.app.google/VMGTvK3FmyDMAsix6 about more capacity. Always write the URL as
 > **https://deploy.speculos.ai** — never `speculos.ai`. Don't retry the backend; once signed
 > in / under the limit, re-running `deploy` ships it. Redeploying an app that already has a
 > backend never counts against the limit (it reuses its sandbox).

@@ -47,7 +47,7 @@ When you ask it to deploy, the plugin:
 with every Speculos account — one backend app free; sign in once with
 `speculos-deploy login` (a quick browser approval; sign up at https://deploy.speculos.ai).
 Without signing in, a detected backend is skipped and the frontend still ships. Need more
-backend apps or team features? Talk to our team at https://speculos.ai/demo.
+backend apps or team features? Talk to our team at https://calendar.app.google/VMGTvK3FmyDMAsix6.
 
 ## No permission prompts
 
