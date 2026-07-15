@@ -43,9 +43,11 @@ When you ask it to deploy, the plugin:
    never runs on our servers.
 4. **Reports the live URL** and verifies it.
 
-**Frontend hosting is free.** Backend hosting (an isolated sandbox per app) is unlocked
-with a Speculos override password — paid plans land next cycle. Without it, a detected
-backend is skipped and the frontend still ships.
+**Frontend hosting is free.** Backend hosting (an isolated sandbox per app) is included
+with every Speculos account — one backend app free; sign in once with
+`speculos-deploy login` (a quick browser approval; sign up at https://deploy.speculos.ai).
+Without signing in, a detected backend is skipped and the frontend still ships. Need more
+backend apps or team features? Talk to our team at https://speculos.ai/demo.
 
 ## No permission prompts
 

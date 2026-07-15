@@ -14,11 +14,11 @@ marketplace are auto-applied at startup — installs always run the latest.
 
 ## What it does
 
-- **Detects** your project (static site, or Vite/Next/CRA/Angular/Svelte; Node/Python backend).
+- **Detects** your project (static site, or Vite/Next/CRA/Angular/Svelte; Node/Python/Bun backend).
 - **Prepares it to deploy**: routes the frontend's API calls through the injected backend URL,
   fixes sub-path asset paths, and (for backends) checks `0.0.0.0:$PORT` + CORS.
-- **Deploys**: frontend hosting is free; backends are enabled with the Speculos override
-  password (paid plans soon).
+- **Deploys**: frontend hosting is free; sign in once with `speculos-deploy login` (a quick
+  browser approval) and every Speculos account includes one backend app free.
 - **No permission prompts**: a `PreToolUse` hook auto-approves *only* clean
   `npx speculos-deploy …` commands (never chained/redirected ones), so deploys don't ask.
 

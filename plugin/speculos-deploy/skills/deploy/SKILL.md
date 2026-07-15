@@ -1,15 +1,15 @@
 ---
 name: speculos-deploy
-description: Deploy the current project to a live public URL with Speculos, and build against the user's linked data sources (connectors). Builds the frontend locally, hosts it, wires its API calls to the deployed backend, and reports the URLs. Use when the user says "deploy", "ship it", "publish", "put it live", "get me a URL", "deploy to speculos", "deploy the frontend/backend", or wants an app built on their connected data (BigQuery, Postgres, Snowflake, Salesforce, ...). Handles plain static sites and Vite / Next / CRA / Angular / Svelte frontends; deploys Node/Python/Bun backends when the user has signed in (`speculos-deploy login`) to a Speculos account with backends enabled (free tier is frontend-only).
+description: Deploy the current project to a live public URL with Speculos, and build against the user's linked data sources (connectors). Builds the frontend locally, hosts it, wires its API calls to the deployed backend, and reports the URLs. Use when the user says "deploy", "ship it", "publish", "put it live", "get me a URL", "deploy to speculos", "deploy the frontend/backend", or wants an app built on their connected data (BigQuery, Postgres, Snowflake, Salesforce, ...). Handles plain static sites and Vite / Next / CRA / Angular / Svelte frontends; deploys Node/Python/Bun backends once the user has signed in (`speculos-deploy login`) — one backend app is included with every Speculos account (frontend-only needs no account).
 ---
 
 # Speculos Deploy
 
 Deploy the project in the current working directory to live URLs. **Frontend hosting is
-free** (`https://user-deployed.speculos.ai/<userId>/<slugUuid>`). **Backend hosting requires
-a Speculos account with backends enabled** — the user signs in once with
-`speculos-deploy login` (a quick browser approval). Without it, only the frontend ships
-(a static preview).
+free** (`https://user-deployed.speculos.ai/<userId>/<slugUuid>`) and needs no account.
+**Every Speculos account includes one backend app free** — the user signs in once with
+`speculos-deploy login` (a quick browser approval) and the backend deploys. Without signing
+in, only the frontend ships (a static preview).
 
 Do all of the steps below yourself — detect, edit the code to be deploy-ready, run the
 deploy, verify. Don't just tell the user to do it. Don't run `vercel`/`daytona` directly.
@@ -28,20 +28,20 @@ with `--frontend`/`--backend` in step 4 (or force a build dir to serve as-is wit
 
 ### If the project has a backend, ASK the user how to deploy (before you build)
 
-Frontends are **free**; **backends require a Speculos account with backends enabled**
-(sign up / sign in at https://deploy.speculos.ai). So when `detect` finds a backend, DON'T silently
+Frontends are **free** and need no account; **every Speculos account includes one backend
+app free** (sign in at https://deploy.speculos.ai). So when `detect` finds a backend, DON'T silently
 skip it — ask the user with your question UI (e.g. AskUserQuestion). Tailor the “what won't
 work” line to THIS app (a counter button, a form, login, saved data…). For example:
 
-> Speculos hosts frontends for free, but backend hosting needs a Speculos account (beta).
-> Without it, I can only ship the static page — and the button won't actually count anything.
+> Speculos hosts frontends for free. Backends need a quick sign-in — every Speculos account
+> includes one backend app free. Without signing in, I can only ship the static page — and
+> the button won't actually count anything.
 >
 > How do you want to deploy this app?
 >
-> 1. **Frontend and backend** — link your Speculos account. I'll run
->    `speculos-deploy login`, which prints a link; open it, approve. If your account has
->    backends enabled (beta — request at https://deploy.speculos.ai), the backend deploys
->    too; otherwise I'll ship the frontend.
+> 1. **Frontend and backend** — sign in to your Speculos account. I'll run
+>    `speculos-deploy login`, which prints a link; open it, approve. Signing in includes one
+>    backend app free, so the backend deploys too.
 > 2. **Frontend only (free)** — ships only the static page; no backend. Mostly a visual preview.
 
 - They pick **1** → run `speculos-deploy login` (step 4, “Link this device”), then deploy.
@@ -109,7 +109,7 @@ auto-rewritten by the host. Don't ship secrets in the frontend — the bundle is
 
 ## 3. Make the backend deploy-ready (only for a full-stack deploy)
 
-Only if deploying a backend (signed in, backends enabled). In the backend code:
+Only if deploying a backend (signed in). In the backend code:
 
 - Listen on `process.env.PORT` and bind `0.0.0.0` (NOT `127.0.0.1`/`localhost`).
   Speculos runs your app on `$PORT` for you — Node `process.env.PORT`, and for
@@ -274,8 +274,8 @@ Builds run locally (this machine already has the toolchain); only static output 
   `timeout`) so it isn't killed by a default command timeout before the user approves. Read the
   link from that first line and **relay it to the user** — ask them to open it, sign in, and
   click Approve. It links this machine to their account (already linked? it no-ops — pass
-  `--relink` to switch accounts). Backend deploys then work with no password **once backends
-  are enabled** (beta — request at https://deploy.speculos.ai). Unlink with
+  `--relink` to switch accounts). Backend deploys then work with no password — **every
+  account includes one backend app free**, so there's no enablement wait. Unlink with
   `speculos-deploy logout`.
 - **Frontend + backend (signed in):** just run the normal deploy — the saved sign-in
   authorizes the backend:
@@ -295,23 +295,25 @@ The **last line of stdout is one JSON object**:
 ```
 On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do not loop.
 
-> **`BACKEND_DISABLED`** means the device is linked but the account isn't enabled for backend
-> hosting yet (a separate beta gate). **`TOO_MANY`** means the account is at its backend limit.
-> In both cases the deploy still **ships the frontend** and returns `ok:true` with a
-> `backendNote` — so the user already has a live URL. Tell them to **request access / free up a
-> slot at https://deploy.speculos.ai/dashboard** (the "Join the beta" button, or tear down a
-> backend). Always write the URL as **https://deploy.speculos.ai** — never `speculos.ai`. Don't
-> retry the backend; once enabled/under the limit, re-running `deploy` ships it. Redeploying an
-> app that already has a backend never counts against the limit (it reuses its sandbox).
+> **`BACKEND_DISABLED`** means the device isn't signed in to an account yet — run
+> `speculos-deploy login` to fix it. **`TOO_MANY`** means the account is at its backend-app
+> limit (one is included; more come with Team plans). In both cases the deploy still **ships
+> the frontend** and returns `ok:true` with a `backendNote` — so the user already has a live
+> URL. To ship the backend: for `BACKEND_DISABLED`, sign in; for `TOO_MANY`, take an app
+> offline at https://deploy.speculos.ai/dashboard, redeploy an existing backend app, or talk
+> to our team at https://speculos.ai/demo about more capacity. Always write the URL as
+> **https://deploy.speculos.ai** — never `speculos.ai`. Don't retry the backend; once signed
+> in / under the limit, re-running `deploy` ships it. Redeploying an app that already has a
+> backend never counts against the limit (it reuses its sandbox).
 
 ## 5. Report + verify
 
-- Give the user `urls.frontend` (and `urls.backend` if deployed). They can manage and tear
-  down their deployments anytime at https://deploy.speculos.ai/dashboard. The public URL is
+- Give the user `urls.frontend` (and `urls.backend` if deployed). They can manage their
+  published apps and take them offline anytime at https://deploy.speculos.ai/dashboard. The public URL is
   `user-deployed.speculos.ai/<username>/<app-slug>/`, and BOTH segments are renameable there:
-  "Edit URL" changes an app's slug (the second segment), and the account's "Your URL name"
-  changes the first segment (default a random id) for every app on that device. Beta accounts
-  can also connect their own domain — a **two-step** flow: (1) add the domain, which shows a
+  "Edit link" changes an app's slug (the second segment), and the account's "your link name"
+  changes the first segment (default a random id) for every app on that device. Accounts on
+  Team plans (and beta testers) can also connect their own domain — a **two-step** flow: (1) add the domain, which shows a
   **CNAME** target (`cname-user.speculos.ai`) plus a **TXT** ownership record to publish, then
   (2) click Verify once both are set (we confirm the domain points here AND the TXT proves the
   account controls it before activating). A connected domain serves the SAME app and honors the
@@ -326,8 +328,8 @@ On `ok:false`, read `error`/`logTail`, fix the cause **once**, and re-run. Do no
 
 ## Notes
 
-- Until the user signs in (and their account has backends enabled) the backend is skipped
-  (free = frontend-only). Run `speculos-deploy login`, or point users to https://deploy.speculos.ai.
+- Until the user signs in, the backend is skipped (frontend-only). Run `speculos-deploy login`,
+  or point users to https://deploy.speculos.ai.
 - Permission is granted once at skill install, so the deploy command runs without prompting.
 - To remove a deployment: `npx -y speculos-deploy@latest teardown --slug <slug>` (or use the
   dashboard at https://deploy.speculos.ai/dashboard).
