@@ -1,16 +1,37 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "speculos",
-  "description": "Speculos — deploy your app to a live URL from any coding agent.",
+  "description": "Speculos Toolkit — deploy your app to a live URL and build against your linked data connectors, from any coding agent.",
   "owner": {
     "name": "Speculos",
     "url": "https://deploy.speculos.ai"
   },
   "plugins": [
     {
+      "name": "speculos-toolkit",
+      "source": "./plugin/speculos-toolkit",
+      "description": "Detect, prepare, and deploy the current project to a live URL with Speculos — free frontend hosting, one backend app included with every account, and data-source connectors (BigQuery, Postgres, Snowflake, …) your agent can build against. Auto-approves the deploy command so it never re-prompts.",
+      "author": {
+        "name": "Speculos"
+      },
+      "homepage": "https://deploy.speculos.ai",
+      "category": "deployment",
+      "keywords": [
+        "deploy",
+        "hosting",
+        "frontend",
+        "vite",
+        "next",
+        "agent",
+        "toolkit",
+        "connectors",
+        "data"
+      ]
+    },
+    {
       "name": "speculos-deploy",
       "source": "./plugin/speculos-deploy",
-      "description": "Detect, prepare, and deploy the current project to a live URL with Speculos — free frontend hosting, account-linked backends, and org data-source connectors (BigQuery, Postgres, Snowflake, …) your agent can build against. Auto-approves the deploy command so it never re-prompts.",
+      "description": "DEPRECATED — renamed to Speculos Toolkit. Install speculos-toolkit@speculos instead.",
       "author": {
         "name": "Speculos"
       },

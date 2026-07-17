@@ -1,35 +1,29 @@
-# Speculos Deploy — Claude Code plugin
+# Speculos Deploy — renamed to Speculos Toolkit
 
-Deploy the project you're working on to a live URL, straight from your coding agent.
+**This plugin has been renamed.** `speculos-deploy` is now **Speculos Toolkit**
+(`speculos-toolkit`) — the same product (deploy to a live URL *plus* data connectors),
+just a broader name. This package remains only as a deprecated pointer.
 
-## Install — one command
+## Migrate
 
 ```bash
-claude plugin marketplace add speculosai/spec_skill && claude plugin install speculos-deploy@speculos
+claude plugin install speculos-toolkit@speculos
+claude plugin uninstall speculos-deploy@speculos
 ```
 
-Restart Claude Code (or `/reload-plugins`), then run `/speculos-deploy:deploy` in any project
-(or just ask your agent to "deploy this"). The plugin isn't version-pinned, so pushes to the
-marketplace are auto-applied at startup — installs always run the latest.
+Or from the `/plugin` UI: install `speculos-toolkit@speculos`, then uninstall
+`speculos-deploy@speculos`.
 
-## What it does
+**Your sign-in and app URLs carry over automatically** — the credential paths
+(`~/.speculos/identity.json` and each project's `.speculos.json`) are unchanged, so your
+account and every existing app URL keep working. Nothing to re-link, no re-deploy needed.
 
-- **Detects** your project (static site, or Vite/Next/CRA/Angular/Svelte; Node/Python/Bun backend).
-- **Prepares it to deploy**: routes the frontend's API calls through the injected backend URL,
-  fixes sub-path asset paths, and (for backends) checks `0.0.0.0:$PORT` + CORS.
-- **Deploys**: frontend hosting is free; sign in once with `speculos-deploy login` (a quick
-  browser approval) and every Speculos account includes one backend app free.
-- **No permission prompts**: a `PreToolUse` hook auto-approves *only* clean
-  `npx speculos-deploy …` commands (never chained/redirected ones), so deploys don't ask.
+Prefer npm? Install the new skill directly:
 
-The actual deploy runs `npx -y speculos-deploy@latest` — Node.js is the only prerequisite
-(npx fetches the tool; no global install needed).
+```bash
+npx -y speculos-toolkit@latest install-skill
+```
 
-## Components
+---
 
-- `skills/deploy/` — the `/speculos-deploy:deploy` workflow.
-- `hooks/` — `PreToolUse` Bash gate (`approve.sh` → `scripts/approve-deploy.cjs`) that
-  auto-approves the deploy command.
-
-Uninstall with `/plugin uninstall speculos-deploy@speculos` (removes the hook too — nothing
-is left behind in your settings).
+Docs: <https://deploy.speculos.ai> · New plugin source: `plugin/speculos-toolkit/`

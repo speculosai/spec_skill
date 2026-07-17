@@ -1,0 +1,26 @@
+{
+  "name": "speculos-toolkit",
+  "displayName": "Speculos Toolkit",
+  "description": "Deploy the current project to a live URL and build against your linked data connectors (BigQuery, Postgres, Snowflake, Salesforce, …) — all from your coding agent. Frontend hosting is free; one backend app is included with every account (sign in with `speculos-toolkit login`). Includes a hook that auto-approves the deploy + connectors commands so they never re-prompt.",
+  "author": {
+    "name": "Speculos",
+    "url": "https://deploy.speculos.ai"
+  },
+  "homepage": "https://deploy.speculos.ai",
+  "license": "MIT",
+  "keywords": [
+    "deploy",
+    "hosting",
+    "frontend",
+    "vite",
+    "next",
+    "cra",
+    "agent",
+    "speculos",
+    "toolkit",
+    "connectors",
+    "data",
+    "bigquery",
+    "postgres"
+  ]
+}

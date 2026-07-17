@@ -57,9 +57,10 @@ https://calendar.app.google/VMGTvK3FmyDMAsix6.
 ## No permission prompts
 
 The plugin includes a `PreToolUse` hook that auto-approves **only** clean
-`npx speculos-toolkit …` commands — anything with shell chaining, command substitution,
-or redirection falls back to a normal permission prompt. So deploys don't nag you, and
-nothing risky is ever auto-approved. Uninstalling the plugin removes the hook cleanly.
+`npx speculos-toolkit …` commands (and legacy `npx speculos-deploy …` during migration) —
+anything with shell chaining, command substitution, or redirection falls back to a normal
+permission prompt. So deploys don't nag you, and nothing risky is ever auto-approved.
+Uninstalling the plugin removes the hook cleanly.
 
 ## Manage
 
@@ -83,28 +84,25 @@ Or do a one-off deploy with no install at all:
 npx -y speculos-toolkit@latest deploy
 ```
 
+## Identity & ownership
+
+Your first deploy mints a machine-global `~/.speculos/identity.json` that owns every URL
+you deploy from this machine; each project records its slug in a gitignored
+`.speculos.json`. Keep both — re-deploys reuse the same URL.
+
 ## Renamed from speculos-deploy
 
-This plugin was previously **speculos-deploy**. It's the same product — now covering deploy
-*and* data connectors — renamed to **Speculos Toolkit**. If you already have the old plugin
-installed, switch over:
+This plugin was previously **speculos-deploy**. It's the same product (now covering deploy
+*and* data connectors), renamed to **Speculos Toolkit**. If you have the old plugin
+installed:
 
 ```bash
 claude plugin install speculos-toolkit@speculos
 claude plugin uninstall speculos-deploy@speculos
 ```
 
-(Or do the same from the `/plugin` UI.) **Your sign-in and app URLs carry over
-automatically** — the credential paths (`~/.speculos/identity.json` and each project's
-`.speculos.json`) are unchanged, so your account and every existing app URL keep working.
-Nothing to re-link, no re-deploy needed. The old `npx -y speculos-deploy@latest` package is
-deprecated; use `npx -y speculos-toolkit@latest` going forward.
-
-## Identity & ownership
-
-Your first deploy mints a machine-global `~/.speculos/identity.json` that owns every URL
-you deploy from this machine; each project records its slug in a gitignored
-`.speculos.json`. Keep both — re-deploys reuse the same URL.
+Your sign-in and app URLs carry over automatically — `~/.speculos/identity.json` and each
+project's `.speculos.json` are unchanged.
 
 ---
 
